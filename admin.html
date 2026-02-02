@@ -4,16 +4,105 @@
     <meta charset="UTF-8">
     <title>CIPHER | Admin Portal</title>
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #f0f2f5; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
         
         /* Login Box Styles */
-        #loginOverlay { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 350px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { background: #0056b3; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        #loginOverlay { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            text-align: center; 
+            width: 350px; 
+        }
+
+        #loginOverlay h2 { color: #0056b3; }
+
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+        }
+
+        button { 
+            background: #0056b3; 
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            width: 100%; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        button:hover { background: #004494; }
+
+        .logout-btn {
+            background: #666;
+            width: auto;
+            padding: 8px 15px;
+        }
+
+        .logout-btn:hover { background: #555; }
         
-        /* Dashboard Styles (Hidden initially) */
-        #dashboard { display: none; width: 90%; max-width: 1000px; height: 90vh; overflow-y: auto; background: white; padding: 30px; border-radius: 12px; }
-        .report-card { border-left: 5px solid #0056b3; padding: 15px; margin-bottom: 15px; background: #f8f9fa; border-radius: 4px; }
+        /* Dashboard Styles */
+        #dashboard { 
+            display: none; 
+            width: 90%; 
+            max-width: 1000px; 
+            max-height: 90vh; 
+            overflow-y: auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        #dashboard h1 { color: #0056b3; margin-top: 0; }
+
+        .dashboard-header {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .report-card { 
+            border-left: 5px solid #0056b3; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            background: #f8f9fa; 
+            border-radius: 4px;
+        }
+
+        .report-card strong { color: #0056b3; }
+
+        .report-card small { color: #666; }
+
+        .report-card p { margin: 8px 0; }
+
+        #error { 
+            color: red; 
+            display: none;
+            margin-top: 10px;
+        }
+
+        #reportList {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -23,50 +112,71 @@
         <p>Please enter the Counselor password</p>
         <input type="password" id="adminPass" placeholder="Enter Password">
         <button onclick="checkLogin()">Login to Dashboard</button>
-        <p id="error" style="color:red; display:none;">Incorrect Password!</p>
+        <p id="error">Incorrect Password!</p>
     </div>
 
     <div id="dashboard">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="dashboard-header">
             <h1>Guidance Counselor Dashboard</h1>
-            <button onclick="location.reload()" style="width:auto; padding:8px 15px; background:#666;">Logout</button>
+            <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
         <hr>
-        <div id="reportList"></div>
+        <div id="reportList">
+            <p>Loading reports...</p>
+        </div>
     </div>
 
     <script>
         function checkLogin() {
             const pass = document.getElementById('adminPass').value;
-            // For Capstone, use a simple hardcoded password
+            
             if(pass === "SHS2026") { 
                 document.getElementById('loginOverlay').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'block';
                 loadReports();
             } else {
                 document.getElementById('error').style.display = 'block';
+                document.getElementById('adminPass').value = '';
             }
+        }
+
+        function logout() {
+            document.getElementById('loginOverlay').style.display = 'block';
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('adminPass').value = '';
+            document.getElementById('error').style.display = 'none';
         }
 
         function loadReports() {
-            // This loads data from the same localStorage as your index.html
-            const reports = JSON.parse(localStorage.getItem('shs_reports')) || [];
-            const list = document.getElementById('reportList');
-            
-            if(reports.length === 0) {
-                list.innerHTML = "<p>No reports currently in the system.</p>";
-                return;
-            }
+            fetch('/api/reports')
+                .then(res => res.json())
+                .then(reports => {
+                    const list = document.getElementById('reportList');
+                    
+                    if(!reports || reports.length === 0) {
+                        list.innerHTML = "<p style='color:#666; text-align:center;'>No reports currently in the system.</p>";
+                        return;
+                    }
 
-            list.innerHTML = reports.map(r => `
-                <div class="report-card">
-                    <strong>Ref ID: ${r.id}</strong> | <small>${r.timestamp}</small><br>
-                    <strong>Incident:</strong> ${r.type.toUpperCase()}<br>
-                    <p><strong>Details:</strong> ${r.description}</p>
-                    <span style="color:#0056b3;">Status: ${r.status}</span>
-                </div>
-            `).reverse().join(''); // Shows newest reports first
+                    list.innerHTML = reports.map(r => `
+                        <div class="report-card">
+                            <strong>Reference ID: ${r.id}</strong> | <small>${r.timestamp}</small><br>
+                            <strong>Incident Type:</strong> ${r.type ? r.type.toUpperCase() : 'N/A'}<br>
+                            <p><strong>Details:</strong> ${r.description || 'No description'}</p>
+                            <span style="color:#0056b3; font-weight:bold;">Status: ${r.status || 'Pending'}</span>
+                        </div>
+                    `).reverse().join('');
+                })
+                .catch(err => {
+                    console.error('Error loading reports:', err);
+                    document.getElementById('reportList').innerHTML = "<p style='color:red;'>Error loading reports. Please refresh the page.</p>";
+                });
         }
+
+        // Allow Enter key to login
+        document.getElementById('adminPass').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') checkLogin();
+        });
     </script>
 </body>
 </html>
